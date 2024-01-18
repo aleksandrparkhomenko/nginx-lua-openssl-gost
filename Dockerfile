@@ -1,5 +1,5 @@
-ARG ALPINE_VERSION=3.18
-ARG OPENRESTY_VERSION=1.25.3.1-0-alpine
+ARG ALPINE_VERSION=3.19
+ARG NGINX_VERSION=1.25
 
 
 FROM alpine:${ALPINE_VERSION} AS gost-builder
@@ -45,16 +45,12 @@ RUN wget "https://github.com/gost-engine/engine/archive/${GOST_ENGINE_COMMT}.zip
   
 RUN apk del --no-network .build-deps
 
-
-
-
-FROM openresty/openresty:${OPENRESTY_VERSION} as runner
+FROM fabiocicerchia/nginx-lua:${NGINX_VERSION}-alpine as runner
 
 RUN apk add --no-cache openssl
 
 COPY --from=gost-builder /app/gost.so "/usr/lib/engines-3"
 
 COPY openssl.cnf /etc/ssl/openssl.cnf
-
 
 #CMD ["sh", "-c", "(while true; do sleep 1; done);"]

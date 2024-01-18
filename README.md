@@ -1,5 +1,5 @@
 # nginx-openssl-gost
-Nginx with OpenSSL and GOST encryption engine.
+Nginx-Lua with OpenSSL and GOST encryption engine.
 
 See built docker image at [771067/nginx-lua-openssl-gost](https://hub.docker.com/r/771067/nginx-lua-openssl-gost)
 
@@ -8,23 +8,24 @@ See built docker image at [771067/nginx-lua-openssl-gost](https://hub.docker.com
 1. Create file `nginx.conf.template` with following content:
 ```
 server {
-    listen 8080;
-    server_name localhost;
-    
-    resolver ${NGINX_LOCAL_RESOLVERS};
+   listen 8080;
+   server_name localhost;
 
-    location / {       
-        proxy_pass https://${CUSTOM_PROXY_HOST}$uri$is_args$args;
-
-        proxy_ssl_certificate     /etc/nginx/certs/client.crt;
-        proxy_ssl_certificate_key /etc/nginx/certs/client.key;
-
-        proxy_ssl_trusted_certificate /etc/nginx/certs/ca.crt;
-        proxy_ssl_verify       on;
-        proxy_ssl_verify_depth 2;
-
-        proxy_ssl_session_reuse on;
-    }
+   location / {
+      rewrite_by_lua_block {
+         ngx.req.set_header("x-header", "value")
+      }   
+      proxy_pass https://${CUSTOM_PROXY_HOST};
+      
+      proxy_ssl_certificate     /etc/nginx/certs/client.crt;
+      proxy_ssl_certificate_key /etc/nginx/certs/client.key;
+      
+      proxy_ssl_trusted_certificate /etc/nginx/certs/ca.crt;
+      proxy_ssl_verify       on;
+      proxy_ssl_verify_depth 2;
+      
+      proxy_ssl_session_reuse on;
+   }
 }
 ```
 2. Create directory `certs` and put 3 files in it:
@@ -35,11 +36,9 @@ server {
 ```sh
 $ docker run \
   -e CUSTOM_PROXY_HOST=gost.example.com \
-  -e NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
   -p 8080:8080 \
   -v "$PWD"/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro \
   -v "$PWD"/certs:/etc/nginx/certs:ro \
-  -e NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
   --name nginx-openssl-gost \
   --rm \
   vejed/nginx-openssl-gost
